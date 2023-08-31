@@ -116,6 +116,33 @@ def lambda_handler(event, context):
         target_failover_on_deregistration = cdef.get("target_failover_on_deregistration")
         target_failover_on_unhealthy = cdef.get("target_failover_on_unhealthy")
 
+        prev_state_def = prev_state.get("def", {})
+
+        prev_deregistration_delay_timeout_seconds = prev_state_def.get('deregistration_delay_timeout_seconds')
+        prev_stickiness_enabled = prev_state_def.get("stickiness_enabled")
+        prev_stickiness_type = prev_state_def.get("stickiness_type")
+        # supported by Application Load Balancers and Network Load Balancers
+        prev_load_balancing_cross_zone_enabled = prev_state_def.get("load_balancing_cross_zone_enabled")
+        prev_target_group_health_dns_failover_minimum_healthy_targets_count = prev_state_def.get("target_group_health_dns_failover_minimum_healthy_targets_count")
+        prev_target_group_health_dns_failover_minimum_healthy_targets_percentage = prev_state_def.get("target_group_health_dns_failover_minimum_healthy_targets_percentage")
+        prev_target_group_health_unhealthy_state_routing_minimum_healthy_targets_count = prev_state_def.get("target_group_health_unhealthy_state_routing_minimum_healthy_targets_count")
+        prev_target_group_health_unhealthy_state_routing_minimum_healthy_targets_percentage = prev_state_def.get("target_group_health_unhealthy_state_routing_minimum_healthy_targets_percentage")
+        # supported only if the load balancer is an Application Load Balancer and the target is an instance or an IP address
+        prev_load_balancing_algorithm_type = prev_state_def.get("load_balancing_algorithm_type")
+        prev_slow_start_duration_seconds = prev_state_def.get("slow_start_duration_seconds")
+        prev_stickiness_app_cookie_cookie_name = prev_state_def.get("stickiness_app_cookie_cookie_name")
+        prev_stickiness_app_cookie_duration_seconds = prev_state_def.get("stickiness_app_cookie_duration_seconds")
+        prev_stickiness_lb_cookie_duration_seconds = prev_state_def.get("stickiness_lb_cookie_duration_seconds")
+        # supported only if the load balancer is an Application Load Balancer and the target is a Lambda function
+        prev_lambda_multi_value_headers_enabled = prev_state_def.get("lambda_multi_value_headers_enabled")
+        # supported only by Network Load Balancers
+        prev_deregistration_delay_connection_termination_enabled = prev_state_def.get("deregistration_delay_connection_termination_enabled")
+        prev_preserve_client_ip_enabled = prev_state_def.get("preserve_client_ip_enabled")
+        prev_proxy_protocol_v2_enabled = prev_state_def.get("proxy_protocol_v2_enabled")
+        # supported only by Gateway Load Balancers
+        prev_target_failover_on_deregistration = prev_state_def.get("target_failover_on_deregistration")
+        prev_target_failover_on_unhealthy = prev_state_def.get("target_failover_on_unhealthy")
+
 
 
         # remove any None values from the attributes dictionary
@@ -161,6 +188,28 @@ def lambda_handler(event, context):
             "target_failover.on_unhealthy": target_failover_on_unhealthy
         })
 
+        prev_state_special_attributes = remove_none_attributes({
+            "deregistration_delay.timeout_seconds": deregistration_delay_timeout_seconds,
+            "stickiness.enabled": stickiness_enabled,
+            "stickiness.type": stickiness_type,
+            "load_balancing.cross_zone.enabled": load_balancing_cross_zone_enabled,
+            "target_group_health.dns_failover.minimum_healthy_targets.count": target_group_health_dns_failover_minimum_healthy_targets_count,
+            "target_group_health.dns_failover.minimum_healthy_targets.percentage": target_group_health_dns_failover_minimum_healthy_targets_percentage,
+            "target_group_health.unhealthy_state_routing.minimum_healthy_targets.count": target_group_health_unhealthy_state_routing_minimum_healthy_targets_count,
+            "target_group_health.unhealthy_state_routing.minimum_healthy_targets.percentage": target_group_health_unhealthy_state_routing_minimum_healthy_targets_percentage,
+            "load_balancing.algorithm.type": load_balancing_algorithm_type,
+            "slow_start.duration_seconds": slow_start_duration_seconds,
+            "stickiness.app_cookie.cookie_name": stickiness_app_cookie_cookie_name,
+            "stickiness.app_cookie.duration_seconds": stickiness_app_cookie_duration_seconds,
+            "stickiness.lb_cookie.duration_seconds": stickiness_lb_cookie_duration_seconds,
+            "lambda.multi_value_headers.enabled": lambda_multi_value_headers_enabled,
+            "deregistration_delay.connection_termination.enabled": deregistration_delay_connection_termination_enabled,
+            "preserve_client_ip.enabled": preserve_client_ip_enabled,
+            "proxy_protocol_v2.enabled": proxy_protocol_v2_enabled,
+            "target_failover.on_deregistration": target_failover_on_deregistration,
+            "target_failover.on_unhealthy": target_failover_on_unhealthy
+        })
+
 
         ### DECLARE STARTING POINT
         pass_back_data = event.get("pass_back_data", {}) # pass_back_data only exists if this is a RETRY
@@ -171,7 +220,6 @@ def lambda_handler(event, context):
         elif event.get("op") == "upsert":
 
             old_name = None
-            old_arn = None
             old_protocol = None
             old_protocol_version = None
             old_port = None
@@ -181,7 +229,6 @@ def lambda_handler(event, context):
 
             try:
                 old_name = prev_state["props"]["name"]
-                old_arn = prev_state["props"]["name"]
                 old_protocol = prev_state["props"]["protocol"]
                 old_protocol_version = prev_state["props"]["protocol_version"]
                 old_port = prev_state["props"]["port"]
@@ -193,7 +240,9 @@ def lambda_handler(event, context):
 
             eh.add_op("get_target_group")
 
-            # If any non-editable fields have changed, delete the target group and recreate it
+            # If any non-editable fields have changed, we are choosing to fail. 
+            # We are NOT choosing to delete and recreate because a listener may be attached and that MUST be removed before the target group can be deleted. 
+            # Therefore a switchover is necessary to change un-editable values.
             if (old_name and old_name != name) or \
                 (old_protocol and old_protocol != protocol) or \
                 (old_protocol_version and old_protocol_version != protocol_version) or \
@@ -234,7 +283,7 @@ def lambda_handler(event, context):
         remove_tags(name)
         set_tags()
         update_target_group(attributes)
-        update_target_group_special_attributes(special_attributes)
+        update_target_group_special_attributes(special_attributes, prev_state)
 
         ### GENERATE PROPS (sometimes can be done in get/create)
 
@@ -274,16 +323,20 @@ def get_target_group(name, attributes, region, prev_state):
         if response and response.get("TargetGroups") and len(response.get("TargetGroups")) > 0:
             target_group_to_use = response.get("TargetGroups")[0]
             target_group_arn = target_group_to_use.get("TargetGroupArn")
-            eh.add_state({"target_group_arn": target_group_to_use.get("TargetGroupArn")})
+            eh.add_state({"target_group_arn": target_group_to_use.get("TargetGroupArn"), "region": region})
             eh.add_props({
                 "name": name,
                 "arn": target_group_to_use.get("TargetGroupArn"),
                 "vpc_id": target_group_to_use.get("VpcId"),
                 "port": target_group_to_use.get("Port"),
-                "load_balancer_arns": target_group_to_use.get("LoadBalancerArns")
+                "load_balancer_arns": target_group_to_use.get("LoadBalancerArns"),
+                "protocol": target_group_to_use.get("Protocol"),
+                "protocol_version": target_group_to_use.get("ProtocolVersion"),
+                "target_type": target_group_to_use.get("TargetType"),
+                "ip_address_type": target_group_to_use.get("IpAddressType")
             })
             eh.add_links({"Target Group": gen_target_group_link(region, target_group_arn)})
-        # else: # If there is no target group and there is no exception, handle it here
+        # else: # If there is no target group and there is no exception, handle it hereb
         #     eh.add_log("Target Group Does Not Exist", {"name": name})
         #     eh.add_op("create_target_group")
     # If there is no target group and there is an exception handle it here
@@ -335,12 +388,17 @@ def create_target_group(attributes, region):
         response = client.create_target_group(**attributes)
 
         eh.add_log("Created Target Group", response)
+        eh.add_state({"target_group_arn": response.get("TargetGroupArn")})
         eh.add_props({
             "name": attributes.get("name"),
             "arn": response.get("TargetGroupArn"),
             "vpc_id": response.get("VpcId"),
             "port": response.get("Port"),
-            "load_balancer_arns": response.get("LoadBalancerArns")
+            "load_balancer_arns": response.get("LoadBalancerArns"),
+            "protocol": response.get("Protocol"),
+            "protocol_version": response.get("ProtocolVersion"),
+            "target_type": response.get("TargetType"),
+            "ip_address_type": response.get("IpAddressType")
         })
 
         eh.add_links({"Target Group": gen_target_group_link(region, response.get("TargetGroupArn"))})
@@ -352,7 +410,7 @@ def create_target_group(attributes, region):
         eh.add_log(f"AWS Quota for Target Groups reached. Please increase your quota and try again.", {"error": str(e)}, is_error=True)
         eh.perm_error(str(e), 20)
     except client.exceptions.InvalidConfigurationRequestException:
-        eh.add_log("Invalid Create Target Group Parameters", {"error": str(e)}, is_error=True)
+        eh.add_log("Invalid Target Group Parameters", {"error": str(e)}, is_error=True)
         eh.perm_error(str(e), 20)
     except client.exceptions.TooManyTagsException:
         eh.add_log("Too Many Tags on Target Group. You may have 50 tags per resource.", {"error": str(e)}, is_error=True)
@@ -406,55 +464,70 @@ def set_tags():
 
 @ext(handler=eh, op="update_target_group")
 def update_target_group(attributes):
-    response = client.modify_target_group(
-        TargetGroupArn='string',
-        HealthCheckProtocol='HTTP'|'HTTPS'|'TCP'|'TLS'|'UDP'|'TCP_UDP'|'GENEVE',
-        HealthCheckPort='string',
-        HealthCheckPath='string',
-        HealthCheckEnabled=True|False,
-        HealthCheckIntervalSeconds=123,
-        HealthCheckTimeoutSeconds=123,
-        HealthyThresholdCount=123,
-        UnhealthyThresholdCount=123,
-        Matcher={
-            'HttpCode': 'string',
-            'GrpcCode': 'string'
-        }
-    )
+    attributes_to_remove = ["Name", "Protocol", "ProtocolVersion", "Port", "VpcId", "TargetType", "Tags", "IpAddressType"]
+    filtered_attributes = [attr for attr in attributes if attr in attributes_to_remove]
+    
+    region = eh.state["region"]
 
-    "Name": name,
-    "Protocol": protocol,
-    "ProtocolVersion": protocol_version,
-    "Port": port,
-    "VpcId": vpc_id,
-    "HealthCheckProtocol": health_check_protocol,
-    "HealthCheckPort": health_check_port,
-    "HealthCheckEnabled": health_check_enabled,
-    "HealthCheckPath": health_check_path,
-    "HealthCheckIntervalSeconds": health_check_interval_seconds,
-    "HealthCheckTimeoutSeconds": health_check_timeout_seconds,
-    "HealthyThresholdCount": healthy_threshold_count,
-    "UnhealthyThresholdCount": unhealthy_threshold_count,
-    "Matcher": matcher,
-    "TargetType": target_type,
-    "Tags": [{"Key": f"{key}", "Value": f"{value}"} for key, value in tags.items()],
-    "IpAddressType": ip_address_type
+    try:
+        response = client.modify_target_group(**filtered_attributes)
 
-    # New target group is required to change these
-    "Name": name,
-    "Protocol": protocol,
-    "ProtocolVersion": protocol_version,
-    "Port": port,
-    "VpcId": vpc_id,
-    "TargetType": target_type,
-    "Tags": [{"Key": f"{key}", "Value": f"{value}"} for key, value in tags.items()],
-    "IpAddressType": ip_address_type
+        eh.add_log("Modified Target Group", response)
 
+        if response and response.get("TargetGroups") and len(response.get("TargetGroups")) > 0:
+            relevant_target_group = response.get("TargetGroups")[0]
+            eh.add_state({"target_group_arn": relevant_target_group.get("TargetGroupArn")})
+            eh.add_props({
+                "name": attributes.get("name"),
+                "arn": relevant_target_group.get("TargetGroupArn"),
+                "vpc_id": relevant_target_group.get("VpcId"),
+                "port": relevant_target_group.get("Port"),
+                "load_balancer_arns": relevant_target_group.get("LoadBalancerArns"),
+                "protocol": relevant_target_group.get("Protocol"),
+                "protocol_version": relevant_target_group.get("ProtocolVersion"),
+                "target_type": relevant_target_group.get("TargetType"),
+                "ip_address_type": relevant_target_group.get("IpAddressType")
+            })
+            eh.add_links({"Target Group": gen_target_group_link(region, response.get("TargetGroupArn"))})
+            
+    except client.exceptions.TargetGroupNotFoundException:
+        eh.add_log("Target Group Not Found", {"error": str(e)}, is_error=True)
+        eh.perm_error(str(e), 80)
+    except client.exceptions.InvalidConfigurationRequestException:
+        eh.add_log("Invalid Target Group Parameters", {"error": str(e)}, is_error=True)
+        eh.perm_error(str(e), 80)
+
+    except ClientError as e:
+        handle_common_errors(e, eh, "Error Adding Tags", progress=90)
     
 
 @ext(handler=eh, op="update_target_group_special_attributes")
-def update_target_group_special_attributes(special_attributes):
-    pass
+def update_target_group_special_attributes(special_attributes, prev_special_attributes):
+
+    target_group_arn = eh.state["target_group_arn"]
+
+    if tags != current_tags:
+        remove_tags = [k for k in current_tags.keys() if k not in tags]
+        add_tags = {k:v for k,v in tags.items() if v != current_tags.get(k)}
+        if remove_tags:
+            eh.add_op("remove_tags", remove_tags)
+        if add_tags:
+            eh.add_op("set_tags", add_tags)
+
+
+
+
+    
+    try:
+        response = client.modify_target_group_attributes(
+            TargetGroupArn=target_group_arn,
+            Attributes=[
+                {
+                    'Key': 'string',
+                    'Value': 'string'
+                },
+            ]
+        )
 
 
 @ext(handler=eh, op="delete_target_group")
