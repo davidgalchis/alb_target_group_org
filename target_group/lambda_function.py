@@ -536,13 +536,13 @@ def create_target_group(attributes, special_attributes, default_special_attribut
 @ext(handler=eh, op="remove_tags")
 def remove_tags():
 
-    remove_tags = eh.ops['remove_tags']
+    remove_tags = eh.ops.get('remove_tags')
     target_group_arn = eh.state["target_group_arn"]
 
     try:
         response = client.remove_tags(
             ResourceArns=[target_group_arn],
-            TagKeys=[remove_tags]
+            TagKeys=remove_tags
         )
         eh.log("Removed Tags")
     except client.exceptions.TargetGroupNotFoundException:
