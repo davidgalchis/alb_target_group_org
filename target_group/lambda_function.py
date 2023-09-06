@@ -544,7 +544,7 @@ def remove_tags():
             ResourceArns=[target_group_arn],
             TagKeys=remove_tags
         )
-        eh.log("Removed Tags")
+        eh.add_log("Removed Tags")
     except client.exceptions.TargetGroupNotFoundException:
         eh.add_log("Target Group Not Found", {"arn": target_group_arn})
 
