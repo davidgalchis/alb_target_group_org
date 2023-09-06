@@ -603,7 +603,7 @@ def update_target_group(attributes):
                 "target_type": relevant_target_group.get("TargetType"),
                 "ip_address_type": relevant_target_group.get("IpAddressType")
             })
-            eh.add_links({"Target Group": gen_target_group_link(region, response.get("TargetGroupArn"))})
+            eh.add_links({"Target Group": gen_target_group_link(region, relevant_target_group.get("TargetGroupArn"))})
             
     except client.exceptions.TargetGroupNotFoundException as e:
         eh.add_log("Target Group Not Found", {"error": str(e)}, is_error=True)
