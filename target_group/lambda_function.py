@@ -276,7 +276,7 @@ def lambda_handler(event, context):
                 (old_ip_address_type and old_ip_address_type != ip_address_type):
 
                 eh.add_log("You may not edit the name, protocol, protocol_version, port, vpc_id, target_type, or ip_address_type on an existing target_group. Please create a new component and associate the listener to your updated target group to get the desired configuration.", {"error": str(e)}, is_error=True)
-                eh.perm_error(str(e), 10)
+                eh.perm_error("You may not edit the name, protocol, protocol_version, port, vpc_id, target_type, or ip_address_type on an existing target_group. Please create a new component and associate the listener to your updated target group to get the desired configuration.", 10)
 
         # If NOT retrying, and we are instead deleting, then we start with the DELETE call 
         #   (sometimes you start with GET STATE if you need to make a call for the identifier)
