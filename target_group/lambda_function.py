@@ -515,7 +515,7 @@ def create_target_group(attributes, special_attributes, default_special_attribut
                 pass
         # If there are no tags specified, make sure to remove any straggler tags
         else:
-            eh.add_op("remove_all_tags")
+            eh.add_op("remove_tags")
 
     except client.exceptions.DuplicateTargetGroupNameException as e:
         eh.add_log(f"Target Group name {attributes.get('name')} already exists", {"error": str(e)}, is_error=True)
