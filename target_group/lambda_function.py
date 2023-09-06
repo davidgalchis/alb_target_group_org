@@ -450,7 +450,7 @@ def create_target_group(attributes, special_attributes, default_special_attribut
         eh.add_log("Created Target Group", target_group)
         eh.add_state({"target_group_arn": target_group.get("TargetGroupArn")})
         eh.add_props({
-            "name": attributes.get("name"),
+            "name": attributes.get("TargetGroupName"),
             "arn": target_group.get("TargetGroupArn"),
             "vpc_id": target_group.get("VpcId"),
             "port": target_group.get("Port"),
@@ -592,7 +592,7 @@ def update_target_group(attributes):
             relevant_target_group = response.get("TargetGroups")[0]
             eh.add_state({"target_group_arn": relevant_target_group.get("TargetGroupArn")})
             eh.add_props({
-                "name": attributes.get("name"),
+                "name": attributes.get("TargetGroupName"),
                 "arn": relevant_target_group.get("TargetGroupArn"),
                 "vpc_id": relevant_target_group.get("VpcId"),
                 "port": relevant_target_group.get("Port"),
