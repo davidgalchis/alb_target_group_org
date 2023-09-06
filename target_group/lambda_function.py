@@ -475,11 +475,11 @@ def create_target_group(attributes, special_attributes, default_special_attribut
             if special_attributes:
                 # You either use whatever is being passed in or the default. That's it. And you only care about parameters that are allowed to be set for the current setup.
                 update_special_attributes = {key: (special_attributes.get(key) or default_special_attributes.get(key)) for key, current_value in current_special_attributes.items() }
-                # eh.add_state({"update_special_attributes": update_attributes})
+                eh.add_state({"update_special_attributes": update_special_attributes})
                 eh.add_op("update_target_group_special_attributes", update_special_attributes)
 
             else:
-                # eh.add_state({"current_special_attributes": current_special_attributes})
+                eh.add_state({"current_special_attributes": current_special_attributes})
                 eh.add_op("reset_target_group_special_attributes", current_special_attributes)
         # If the target group does not exist, some wrong has happened. Probably don't permanently fail though, try to continue.
         except client.exceptions.TargetGroupNotFoundException:
@@ -619,8 +619,8 @@ def update_target_group(attributes):
 def update_target_group_special_attributes():
 
     target_group_arn = eh.state["target_group_arn"]
-    update_special_attributes = eh.ops.get("update_target_group_special_attributes") # Pre-calculated in the get call get pull it in here and make the change
-    # update_special_attributes = eh.state("update_special_attributes") # Pre-calculated in the get call get pull it in here and make the change
+    # update_special_attributes = eh.ops.get("update_target_group_special_attributes") # Pre-calculated in the get call get pull it in here and make the change
+    update_special_attributes = eh.state("update_special_attributes")
     formatted_update_attributes = [{"Key": key, "Value": value} for key, value in update_special_attributes.items()]
 
     try:
@@ -644,8 +644,8 @@ def update_target_group_special_attributes():
 def reset_target_group_special_attributes(default_special_attributes):
 
     target_group_arn = eh.state["target_group_arn"]
-    current_special_attributes = eh.ops.get("reset_target_group_special_attributes") # Pre-calculated in the get call get pull it in here and make the change
-    # current_special_attributes = eh.state["current_special_attributes"]
+    # current_special_attributes = eh.state["current_special_attributes"] # Pre-calculated in the get call get pull it in here and make the change
+    current_special_attributes = eh.state["current_special_attributes"]
 
     update_attributes = {key: default_special_attributes.get(key) for key in current_special_attributes}
     formatted_update_attributes = [{"Key": key, "Value": value} for key, value in update_attributes.items()]
