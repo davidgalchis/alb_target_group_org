@@ -1,6 +1,6 @@
 {
     "components": {
-        "queue": {
+        "target_group": {
             "type": "ext",
             "displayname": "CK Elastic Load Balancing V2 Target Group",
             "description": "Deploys an AWS ELBv2 Target Group. Target group defines targets to which a load balancer can route traffic.",
