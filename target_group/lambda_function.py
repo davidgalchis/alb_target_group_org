@@ -389,16 +389,16 @@ def get_target_group(name, attributes, targets, special_attributes, default_spec
 
             targets_comparable = []
             if targets:
-                targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone', '')}" for item in targets]
+                targets_comparable = [f"{item.get('Id')}${item.get('Port', '')}${item.get('AvailabilityZone', '')}" for item in targets]
 
             prev_targets_comparable= []
             if prev_targets:
-                prev_targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone', '')}" for item in prev_targets]
+                prev_targets_comparable = [f"{item.get('Id')}${item.get('Port', '')}${item.get('AvailabilityZone', '')}" for item in prev_targets]
 
             prev_targets_to_remove = [prev_target.split("$")[0] for prev_target in prev_targets_comparable if prev_target not in targets_comparable]
             targets_to_add = [remove_none_attributes({ \
                 "Id": def_target.split("$")[0], \
-                "Port": safe_cast(def_target.split("$")[1], int, def_target.split("$")[1]), \
+                "Port": safe_cast(def_target.split("$")[1], int, def_target.split("$")[1]) or None, \
                 "AvailabilityZone": def_target.split("$")[2] or None \
                 }) for def_target in targets_comparable if def_target not in prev_targets_comparable]
             
@@ -516,16 +516,16 @@ def create_target_group(attributes, targets, special_attributes, default_special
 
         targets_comparable = []
         if targets:
-            targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone', '')}" for item in targets]
+            targets_comparable = [f"{item.get('Id')}${item.get('Port', '')}${item.get('AvailabilityZone', '')}" for item in targets]
 
         prev_targets_comparable= []
         if prev_targets:
-            prev_targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone', '')}" for item in prev_targets]
+            prev_targets_comparable = [f"{item.get('Id')}${item.get('Port', '')}${item.get('AvailabilityZone', '')}" for item in prev_targets]
 
         prev_targets_to_remove = [prev_target.split("$")[0] for prev_target in prev_targets_comparable if prev_target not in targets_comparable]
         targets_to_add = [remove_none_attributes({ \
             "Id": def_target.split("$")[0], \
-            "Port": safe_cast(def_target.split("$")[1], int, def_target.split("$")[1]), \
+            "Port": safe_cast(def_target.split("$")[1], int, def_target.split("$")[1]) or None, \
             "AvailabilityZone": def_target.split("$")[2] or None \
             }) for def_target in targets_comparable if def_target not in prev_targets_comparable]
         
