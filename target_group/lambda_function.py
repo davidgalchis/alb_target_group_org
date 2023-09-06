@@ -623,7 +623,7 @@ def update_target_group_special_attributes():
 
     target_group_arn = eh.state["target_group_arn"]
     # update_special_attributes = eh.ops.get("update_target_group_special_attributes") # Pre-calculated in the get call get pull it in here and make the change
-    update_special_attributes = eh.state("update_special_attributes")
+    update_special_attributes = eh.state["update_special_attributes"]
     formatted_update_attributes = [{"Key": key, "Value": value} for key, value in update_special_attributes.items()]
 
     try:
