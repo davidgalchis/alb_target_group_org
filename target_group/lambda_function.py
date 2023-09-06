@@ -309,7 +309,7 @@ def lambda_handler(event, context):
         remove_tags()
         set_tags()
         update_target_group(attributes)
-        update_target_group_special_attributes(special_attributes, prev_state)
+        update_target_group_special_attributes()
         reset_target_group_special_attributes(default_special_attributes)
 
         ### GENERATE PROPS (sometimes can be done in get/create)
