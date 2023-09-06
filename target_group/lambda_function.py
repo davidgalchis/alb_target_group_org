@@ -422,7 +422,7 @@ def get_target_group(name, attributes, special_attributes, default_special_attri
                     pass
             # If there are no tags specified, make sure to remove any straggler tags
             else:
-                eh.add_op("remove_all_tags")
+                eh.add_op("remove_tags")
 
         else:
             eh.add_log("Did not find target group")
@@ -489,7 +489,7 @@ def create_target_group(attributes, special_attributes, default_special_attribut
             pass
 
         # If there are tags specified, figure out which ones need to be added and which ones need to be removed
-        if attributes.get("tags"):
+        if attributes.get("Tags"):
             try:
                 # Try to get the current tags
                 response = client.describe_tags(ResourceArns=[target_group_arn])
@@ -500,11 +500,12 @@ def create_target_group(attributes, special_attributes, default_special_attribut
                     relevant_item = relevant_items[0]
                     if relevant_item.get("Tags"):
                         current_tags = {item.get("Key") : item.get("Value") for item in relevant_item.get("Tags")}
-                tags = attributes.get("tags")
+                tags = attributes.get("Tags")
+                formatted_tags = {item.get("Key") : item.get("Value") for item in tags}
                 # Compare the current tags to the desired tags
-                if tags != current_tags:
-                    remove_tags = [k for k in current_tags.keys() if k not in tags]
-                    add_tags = {k:v for k,v in tags.items() if v != current_tags.get(k)}
+                if formatted_tags != current_tags:
+                    remove_tags = [k for k in current_tags.keys() if k not in formatted_tags]
+                    add_tags = {k:v for k,v in formatted_tags.items() if v != current_tags.get(k)}
                     if remove_tags:
                         eh.add_op("remove_tags", remove_tags)
                     if add_tags:
@@ -518,7 +519,7 @@ def create_target_group(attributes, special_attributes, default_special_attribut
             eh.add_op("remove_tags")
 
     except client.exceptions.DuplicateTargetGroupNameException as e:
-        eh.add_log(f"Target Group name {attributes.get('name')} already exists", {"error": str(e)}, is_error=True)
+        eh.add_log(f"Target Group name {attributes.get('Name')} already exists", {"error": str(e)}, is_error=True)
         eh.perm_error(str(e), 20)
     except client.exceptions.TooManyTargetGroupsException as e:
         eh.add_log(f"AWS Quota for Target Groups reached. Please increase your quota and try again.", {"error": str(e)}, is_error=True)
