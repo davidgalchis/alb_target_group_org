@@ -381,8 +381,13 @@ def get_target_group(name, attributes, targets, special_attributes, default_spec
             # Figure out what targets needs to be removed and added and setup those actions
             prev_targets = prev_state.get("props", {}).get("targets")
 
-            targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in targets]
-            prev_targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in prev_targets]
+            targets_comparable = []
+            if targets:
+                targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in targets]
+                
+            prev_targets_comparable= []
+            if prev_targets:
+                prev_targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in prev_targets]
 
             prev_targets_to_remove = [prev_target.split("$")[0] for prev_target in prev_targets_comparable if prev_target not in targets_comparable]
             targets_to_add = [remove_none_attributes({ \
