@@ -394,7 +394,7 @@ def get_target_group(name, attributes, special_attributes, default_special_attri
                 pass
 
             # If there are tags specified, figure out which ones need to be added and which ones need to be removed
-            if attributes.get("tags"):
+            if attributes.get("Tags"):
                 try:
                     # Try to get the current tags
                     response = client.describe_tags(ResourceArns=[target_group_arn])
@@ -406,7 +406,7 @@ def get_target_group(name, attributes, special_attributes, default_special_attri
                         relevant_item = relevant_items[0]
                         if relevant_item.get("Tags"):
                             current_tags = {item.get("Key") : item.get("Value") for item in relevant_item.get("Tags")}
-                    tags = attributes.get("tags")
+                    tags = attributes.get("Tags")
                     # Compare the current tags to the desired tags
                     if tags != current_tags:
                         remove_tags = [k for k in current_tags.keys() if k not in tags]
@@ -555,6 +555,7 @@ def remove_tags():
 def set_tags():
 
     tags = eh.ops.get("set_tags")
+    print(tags)
     target_group_arn = eh.state["target_group_arn"]
     try:
         response = client.add_tags(
