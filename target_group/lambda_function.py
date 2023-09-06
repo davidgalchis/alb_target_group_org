@@ -86,8 +86,8 @@ def lambda_handler(event, context):
         unhealthy_threshold_count = cdef.get('unhealthy_threshold_count') or 2
         matcher = cdef.get('matcher') or {"HttpCode": '200,403'}
         target_type = cdef.get('target_type') or 'ip'
-        tags = cdef.get('tags') or {} # this is converted to a [{"Key": key, "Value": value} , ...] format
-        ip_address_type = cdef.get('tags') or 'ipv4'
+        tags = cdef.get('tags') # this is converted to a [{"Key": key, "Value": value} , ...] format
+        ip_address_type = cdef.get('ip_address_type') or 'ipv4'
 
         ### SPECIAL ATTRIBUTES THAT CAN ONLY BE ADDED POST INITIAL CREATION
         # supported by all load balancers
@@ -162,7 +162,7 @@ def lambda_handler(event, context):
             "UnhealthyThresholdCount": unhealthy_threshold_count,
             "Matcher": matcher,
             "TargetType": target_type,
-            "Tags": [{"Key": f"{key}", "Value": f"{value}"} for key, value in tags.items()],
+            "Tags": [{"Key": f"{key}", "Value": f"{value}"} for key, value in tags.items()] if tags else None,
             "IpAddressType": ip_address_type
         })
 
