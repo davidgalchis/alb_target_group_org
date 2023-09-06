@@ -407,10 +407,11 @@ def get_target_group(name, attributes, special_attributes, default_special_attri
                         if relevant_item.get("Tags"):
                             current_tags = {item.get("Key") : item.get("Value") for item in relevant_item.get("Tags")}
                     tags = attributes.get("Tags")
+                    formatted_tags = {item.get("Key") : item.get("Value") for item in tags}
                     # Compare the current tags to the desired tags
-                    if tags != current_tags:
-                        remove_tags = [k for k in current_tags.keys() if k not in tags]
-                        add_tags = {k:v for k,v in tags.items() if v != current_tags.get(k)}
+                    if formatted_tags != current_tags:
+                        remove_tags = [k for k in current_tags.keys() if k not in formatted_tags]
+                        add_tags = {k:v for k,v in formatted_tags.items() if v != current_tags.get(k)}
                         if remove_tags:
                             eh.add_op("remove_tags", remove_tags)
                         if add_tags:
