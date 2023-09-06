@@ -42,6 +42,12 @@ Wrap all operations you want to run with the following:
 Progress only needs to be explicitly reported on 1) a retry 2) an error. Finishing auto-sets progress to 100. 
 """
 
+def safe_cast(val, to_type, default=None):
+    try:
+        return to_type(val)
+    except (ValueError, TypeError):
+        return default
+
 def lambda_handler(event, context):
     try:
         # All relevant data is generally in the event, excepting the region and account number
@@ -392,7 +398,7 @@ def get_target_group(name, attributes, targets, special_attributes, default_spec
             prev_targets_to_remove = [prev_target.split("$")[0] for prev_target in prev_targets_comparable if prev_target not in targets_comparable]
             targets_to_add = [remove_none_attributes({ \
                 "Id": def_target.split("$")[0], \
-                "Port": def_target.split("$")[1], \
+                "Port": safe_cast(def_target.split("$")[1], int, def_target.split("$")[1]), \
                 "AvailabilityZone": def_target.split("$")[2] or None \
                 }) for def_target in targets_comparable if def_target not in prev_targets_comparable]
             
@@ -519,7 +525,7 @@ def create_target_group(attributes, targets, special_attributes, default_special
         prev_targets_to_remove = [prev_target.split("$")[0] for prev_target in prev_targets_comparable if prev_target not in targets_comparable]
         targets_to_add = [remove_none_attributes({ \
             "Id": def_target.split("$")[0], \
-            "Port": def_target.split("$")[1], \
+            "Port": safe_cast(def_target.split("$")[1], int, def_target.split("$")[1]), \
             "AvailabilityZone": def_target.split("$")[2] or None \
             }) for def_target in targets_comparable if def_target not in prev_targets_comparable]
         
