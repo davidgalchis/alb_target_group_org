@@ -658,6 +658,7 @@ def register_targets():
     targets = eh.ops.get("register_targets")
     target_group_arn = eh.state["target_group_arn"]
     print(targets)
+    print(target_group_arn)
     try:
         response = client.register_targets(
             TargetGroupArn=target_group_arn,
