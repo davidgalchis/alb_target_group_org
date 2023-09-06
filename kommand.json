@@ -24,7 +24,9 @@
                         "elasticloadbalancing:DescribeTargetGroups",
                         "elasticloadbalancing:DeleteTargetGroup",
                         "elasticloadbalancing:ModifyTargetGroupAttributes",
-                        "elasticloadbalancing:ModifyTargetGroup"
+                        "elasticloadbalancing:ModifyTargetGroup",
+                        "elasticloadbalancing:RegisterTargets",
+				        "elasticloadbalancing:DeregisterTargets"
                     ],
                     "Resource": "*"
                 }]
