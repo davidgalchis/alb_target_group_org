@@ -444,23 +444,24 @@ def create_target_group(attributes, special_attributes, default_special_attribut
 
     try:
         response = client.create_target_group(**attributes)
-        target_group_arn = response.get("TargetGroupArn")
+        target_group = response.get("TargetGroups")[0]
+        target_group_arn = target_group.get("TargetGroupArn")
 
-        eh.add_log("Created Target Group", response)
-        eh.add_state({"target_group_arn": response.get("TargetGroupArn")})
+        eh.add_log("Created Target Group", target_group)
+        eh.add_state({"target_group_arn": target_group.get("TargetGroupArn")})
         eh.add_props({
             "name": attributes.get("name"),
-            "arn": response.get("TargetGroupArn"),
-            "vpc_id": response.get("VpcId"),
-            "port": response.get("Port"),
-            "load_balancer_arns": response.get("LoadBalancerArns"),
-            "protocol": response.get("Protocol"),
-            "protocol_version": response.get("ProtocolVersion"),
-            "target_type": response.get("TargetType"),
-            "ip_address_type": response.get("IpAddressType")
+            "arn": target_group.get("TargetGroupArn"),
+            "vpc_id": target_group.get("VpcId"),
+            "port": target_group.get("Port"),
+            "load_balancer_arns": target_group.get("LoadBalancerArns"),
+            "protocol": target_group.get("Protocol"),
+            "protocol_version": target_group.get("ProtocolVersion"),
+            "target_type": target_group.get("TargetType"),
+            "ip_address_type": target_group.get("IpAddressType")
         })
 
-        eh.add_links({"Target Group": gen_target_group_link(region, response.get("TargetGroupArn"))})
+        eh.add_links({"Target Group": gen_target_group_link(region, target_group.get("TargetGroupArn"))})
 
         ### Once the target_group exists, then setup any followup tasks
 
