@@ -393,19 +393,22 @@ def get_target_group(name, attributes, special_attributes, default_special_attri
                 eh.add_log("Target Group Not Found", {"arn": target_group_arn})
                 pass
 
-            # If there are tags specified, figure out which ones need to be added and which ones need to be removed
-            if attributes.get("Tags"):
-                try:
-                    # Try to get the current tags
-                    response = client.describe_tags(ResourceArns=[target_group_arn])
-                    eh.add_log("Got Tags")
-                    relevant_items = [item for item in response.get("TagDescriptions") if item.get("ResourceArn") == target_group_arn]
-                    current_tags = {}
-                    # Parse out the current tags
-                    if len(relevant_items) > 0:
-                        relevant_item = relevant_items[0]
-                        if relevant_item.get("Tags"):
-                            current_tags = {item.get("Key") : item.get("Value") for item in relevant_item.get("Tags")}
+            try:
+                # Try to get the current tags
+                response = client.describe_tags(ResourceArns=[target_group_arn])
+                eh.add_log("Got Tags")
+                relevant_items = [item for item in response.get("TagDescriptions") if item.get("ResourceArn") == target_group_arn]
+                current_tags = {}
+
+                # Parse out the current tags
+                if len(relevant_items) > 0:
+                    relevant_item = relevant_items[0]
+                    if relevant_item.get("Tags"):
+                        current_tags = {item.get("Key") : item.get("Value") for item in relevant_item.get("Tags")}
+
+                # If there are tags specified, figure out which ones need to be added and which ones need to be removed
+                if attributes.get("Tags"):
+
                     tags = attributes.get("Tags")
                     formatted_tags = {item.get("Key") : item.get("Value") for item in tags}
                     # Compare the current tags to the desired tags
@@ -416,13 +419,15 @@ def get_target_group(name, attributes, special_attributes, default_special_attri
                             eh.add_op("remove_tags", remove_tags)
                         if add_tags:
                             eh.add_op("set_tags", add_tags)
-                # If the target group does not exist, some wrong has happened. Probably don't permanently fail though, try to continue.
-                except client.exceptions.TargetGroupNotFoundException:
-                    eh.add_log("Target Group Not Found", {"arn": target_group_arn})
-                    pass
-            # If there are no tags specified, make sure to remove any straggler tags
-            else:
-                eh.add_op("remove_tags")
+                # If there are no tags specified, make sure to remove any straggler tags
+                else:
+                    if current_tags:
+                        eh.add_op("remove_tags", list(current_tags.keys()))
+
+            # If the target group does not exist, some wrong has happened. Probably don't permanently fail though, try to continue.
+            except client.exceptions.TargetGroupNotFoundException:
+                eh.add_log("Target Group Not Found", {"arn": target_group_arn})
+                pass
 
         else:
             eh.add_log("Did not find target group")
@@ -488,18 +493,22 @@ def create_target_group(attributes, special_attributes, default_special_attribut
             eh.add_log("Target Group Not Found", {"arn": target_group_arn})
             pass
 
-        # If there are tags specified, figure out which ones need to be added and which ones need to be removed
-        if attributes.get("Tags"):
-            try:
-                # Try to get the current tags
-                response = client.describe_tags(ResourceArns=[target_group_arn])
-                relevant_items = [item for item in response.get("TagDescriptions") if item.get("ResourceArn") == target_group_arn]
-                current_tags = {}
-                # Parse out the current tags
-                if len(relevant_items) > 0:
-                    relevant_item = relevant_items[0]
-                    if relevant_item.get("Tags"):
-                        current_tags = {item.get("Key") : item.get("Value") for item in relevant_item.get("Tags")}
+        try:
+            # Try to get the current tags
+            response = client.describe_tags(ResourceArns=[target_group_arn])
+            eh.add_log("Got Tags")
+            relevant_items = [item for item in response.get("TagDescriptions") if item.get("ResourceArn") == target_group_arn]
+            current_tags = {}
+
+            # Parse out the current tags
+            if len(relevant_items) > 0:
+                relevant_item = relevant_items[0]
+                if relevant_item.get("Tags"):
+                    current_tags = {item.get("Key") : item.get("Value") for item in relevant_item.get("Tags")}
+
+            # If there are tags specified, figure out which ones need to be added and which ones need to be removed
+            if attributes.get("Tags"):
+
                 tags = attributes.get("Tags")
                 formatted_tags = {item.get("Key") : item.get("Value") for item in tags}
                 # Compare the current tags to the desired tags
@@ -510,13 +519,15 @@ def create_target_group(attributes, special_attributes, default_special_attribut
                         eh.add_op("remove_tags", remove_tags)
                     if add_tags:
                         eh.add_op("set_tags", add_tags)
-            # If the target group does not exist, some wrong has happened. Probably don't permanently fail though, try to continue.
-            except client.exceptions.TargetGroupNotFoundException:
-                eh.add_log("Target Group Not Found", {"arn": target_group_arn})
-                pass
-        # If there are no tags specified, make sure to remove any straggler tags
-        else:
-            eh.add_op("remove_tags")
+            # If there are no tags specified, make sure to remove any straggler tags
+            else:
+                if current_tags:
+                    eh.add_op("remove_tags", list(current_tags.keys()))
+
+        # If the target group does not exist, some wrong has happened. Probably don't permanently fail though, try to continue.
+        except client.exceptions.TargetGroupNotFoundException:
+            eh.add_log("Target Group Not Found", {"arn": target_group_arn})
+            pass
 
     except client.exceptions.DuplicateTargetGroupNameException as e:
         eh.add_log(f"Target Group name {attributes.get('Name')} already exists", {"error": str(e)}, is_error=True)
