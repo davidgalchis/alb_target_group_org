@@ -579,6 +579,7 @@ def set_tags():
 def update_target_group(attributes):
     attributes_to_remove = ["Name", "Protocol", "ProtocolVersion", "Port", "VpcId", "TargetType", "Tags", "IpAddressType"]
     filtered_attributes = {attr: attributes[attr] for attr in attributes if attr not in attributes_to_remove}
+    filtered_attributes["TargetGroupArn"] = eh.state["target_group_arn"]
     
     region = eh.state["region"]
 
