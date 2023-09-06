@@ -71,6 +71,28 @@
                         "description": "The type of IP address used for this target group.",
                         "enum": ["ipv4", "ipv6"]
                     },
+                    "targets": {
+                        "type": "array",
+                        "description": "The targets that this target group will route traffic to.",
+                        "common": true,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "description": "The ID of the target. If the target type of the target group is instance, specify an instance ID. If the target type is ip, specify an IP address. If the target type is lambda, specify the ARN of the Lambda function. If the target type is alb, specify the ARN of the Application Load Balancer target."
+                                },
+                                "port": {
+                                    "type": "integer", 
+                                    "description": "The port on which the target is listening."
+                                },
+                                "availability_zone": {
+                                    "type": "string", 
+                                    "description": "An Availability Zone or \"all\". This determines whether the target receives traffic from the load balancer nodes in the specified Availability Zone or from all enabled Availability Zones for the load balancer."
+                                }
+                            }
+                        }
+                    },
                     "health_check_protocol": {
                         "type": "string",
                         "description": "The protocol the load balancer uses when performing health checks on targets.",
@@ -284,7 +306,28 @@
                 "ip_address_type": {
                     "type": "string",
                     "description": "The type of IP address used for this target group."
-                }
+                },
+                "targets": {
+                    "type": "array",
+                    "description": "The targets that this target group will route traffic to.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "The ID of the target. If the target type of the target group is instance, specify an instance ID. If the target type is ip, specify an IP address. If the target type is lambda, specify the ARN of the Lambda function. If the target type is alb, specify the ARN of the Application Load Balancer target."
+                            },
+                            "port": {
+                                "type": "integer", 
+                                "description": "The port on which the target is listening."
+                            },
+                            "availability_zone": {
+                                "type": "string", 
+                                "description": "An Availability Zone or \"all\". This determines whether the target receives traffic from the load balancer nodes in the specified Availability Zone or from all enabled Availability Zones for the load balancer."
+                            }
+                        }
+                    }
+                },
             },
             "examples": [
                 {

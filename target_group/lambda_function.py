@@ -89,6 +89,9 @@ def lambda_handler(event, context):
         tags = cdef.get('tags') # this is converted to a [{"Key": key, "Value": value} , ...] format
         ip_address_type = cdef.get('ip_address_type') or 'ipv4'
 
+        ### Targets for the target group
+        targets = cdef.get('targets')
+
         ### SPECIAL ATTRIBUTES THAT CAN ONLY BE ADDED POST INITIAL CREATION
         # supported by all load balancers
         deregistration_delay_timeout_seconds = cdef.get('deregistration_delay_timeout_seconds')
@@ -142,9 +145,14 @@ def lambda_handler(event, context):
         # # supported only by Gateway Load Balancers
         # prev_target_failover_on_deregistration = prev_state_def.get("target_failover_on_deregistration")
         # prev_target_failover_on_unhealthy = prev_state_def.get("target_failover_on_unhealthy")
-
-
-
+        formatted_targets = None
+        if targets:
+            formatted_targets = [{
+                'Id': item.get("id"),
+                'Port': item.get("port"),
+                'AvailabilityZone': item.get('availability_zone')
+            } for item in targets]
+            
         # remove any None values from the attributes dictionary
         attributes = remove_none_attributes({
             "Name": name,
@@ -296,7 +304,7 @@ def lambda_handler(event, context):
         ### The eh.add_op() function MUST be called for actual execution of any of the functions. 
 
         ### GET STATE
-        get_target_group(name, attributes, special_attributes, default_special_attributes, region, prev_state)
+        get_target_group(name, attributes, targets, special_attributes, default_special_attributes, region, prev_state)
 
         ### DELETE CALL(S)
         delete_target_group()
@@ -308,6 +316,7 @@ def lambda_handler(event, context):
         # You want ONE function per boto3 update call, so that retries come back to the EXACT same spot. 
         remove_tags()
         set_tags()
+        register_targets(formatted_targets)
         update_target_group(attributes)
         update_target_group_special_attributes()
         reset_target_group_special_attributes(default_special_attributes)
@@ -333,7 +342,7 @@ def lambda_handler(event, context):
 # eh.add_props() is used to add useful bits of information that can be used by this component or other components to integrate with this.
 # eh.add_links() is used to add useful links to the console, the deployed infrastructure, the logs, etc that pertain to this component.
 @ext(handler=eh, op="get_target_group")
-def get_target_group(name, attributes, special_attributes, default_special_attributes, region, prev_state):
+def get_target_group(name, attributes, targets, special_attributes, default_special_attributes, region, prev_state):
     client = boto3.client("elbv2")
 
     if prev_state and prev_state.get("props") and prev_state.get("props").get("name"):
@@ -361,12 +370,31 @@ def get_target_group(name, attributes, special_attributes, default_special_attri
                 "protocol": target_group_to_use.get("Protocol"),
                 "protocol_version": target_group_to_use.get("ProtocolVersion"),
                 "target_type": target_group_to_use.get("TargetType"),
-                "ip_address_type": target_group_to_use.get("IpAddressType")
+                "ip_address_type": target_group_to_use.get("IpAddressType"),
+                "targets": prev_state.get("props", {}).get("targets")
             })
             eh.add_links({"Target Group": gen_target_group_link(region, target_group_arn)})
 
 
             ### If the target_group exists, then setup any followup tasks
+
+            # Figure out what targets needs to be removed and added and setup those actions
+            prev_targets = prev_state.get("props", {}).get("targets")
+
+            targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in targets]
+            prev_targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in prev_targets]
+
+            prev_targets_to_remove = [prev_target.split("$")[0] for prev_target in prev_targets_comparable if prev_target not in targets_comparable]
+            targets_to_add = [remove_none_attributes({ \
+                "Id": def_target.split("$")[0], \
+                "Port": def_target.split("$")[1], \
+                "AvailabilityZone": def_target.split("$")[2] or None \
+                }) for def_target in targets_comparable if def_target not in prev_targets_comparable]
+            
+            if targets_to_add:
+                eh.add_op("register_targets", targets_to_add)
+            if prev_targets_to_remove:
+                eh.add_op("deregister_targets", prev_targets_to_remove)
             
             # Update the target group
             eh.add_op("update_target_group")
@@ -589,6 +617,60 @@ def set_tags():
 
     except ClientError as e:
         handle_common_errors(e, eh, "Error Adding Tags", progress=90)
+
+@ext(handler=eh, op="register_targets")
+def register_targets():
+
+    targets = eh.ops.get("register_targets")
+    target_group_arn = eh.state["target_group_arn"]
+    try:
+        response = client.register_targets(
+            TargetGroupArn=target_group_arn,
+            Targets=targets
+        )
+        eh.add_log("Targets Registered", response)
+        eh.add_props({
+            "targets": targets
+        })
+
+    except client.exceptions.TargetGroupNotFoundException as e:
+        eh.add_log("Target Group Not Found", {"error": str(e)}, is_error=True)
+        eh.perm_error(str(e), 60)
+    except client.exceptions.InvalidTargetException as e:
+        eh.add_log(f"Target provided is invalid. Please correct and try again.", {"error": str(e)}, is_error=True)
+        eh.perm_error(str(e), 60)
+    except client.exceptions.TooManyTargetsException as e:
+        eh.add_log(f"Too Many Targets on Target Group.", {"error": str(e)}, is_error=True)
+        eh.perm_error(str(e), 60)
+    except client.exceptions.TooManyRegistrationsForTargetIdException as e:
+        eh.add_log(f"Too many registrations for a target id. Decrease the number of registrations for the target id and try again.", {"error": str(e)}, is_error=True)
+        eh.perm_error(str(e), 60)
+
+    except ClientError as e:
+        handle_common_errors(e, eh, "Error Registering Targets", progress=60)
+
+@ext(handler=eh, op="deregister_targets")
+def deregister_targets():
+
+    targets = eh.ops.get("deregister_targets")
+    formatted_targets = [{"Id": item} for item in targets]
+    target_group_arn = eh.state["target_group_arn"]
+    try:
+        response = client.deregister_targets(
+            TargetGroupArn=target_group_arn,
+            Targets=formatted_targets
+        )
+        eh.add_log("Targets Deregistered", response)
+
+    except client.exceptions.TargetGroupNotFoundException as e:
+        eh.add_log("Target Group Not Found", {"error": str(e)}, is_error=True)
+        eh.perm_error(str(e), 60)
+    except client.exceptions.InvalidTargetException as e:
+        eh.add_log(f"Target provided is invalid. Please correct and try again.", {"error": str(e)}, is_error=True)
+        eh.perm_error(str(e), 60)
+
+    except ClientError as e:
+        handle_common_errors(e, eh, "Error Deregistering Targets", progress=60)
 
 @ext(handler=eh, op="update_target_group")
 def update_target_group(attributes):
