@@ -153,11 +153,11 @@ def lambda_handler(event, context):
         # prev_target_failover_on_unhealthy = prev_state_def.get("target_failover_on_unhealthy")
         formatted_targets = None
         if targets:
-            formatted_targets = [{
+            formatted_targets = [remove_none_attributes({
                 'Id': item.get("id"),
                 'Port': item.get("port"),
                 'AvailabilityZone': item.get('availability_zone')
-            } for item in targets]
+            }) for item in targets]
             
         # remove any None values from the attributes dictionary
         attributes = remove_none_attributes({
@@ -310,13 +310,13 @@ def lambda_handler(event, context):
         ### The eh.add_op() function MUST be called for actual execution of any of the functions. 
 
         ### GET STATE
-        get_target_group(name, attributes, targets, special_attributes, default_special_attributes, region, prev_state)
+        get_target_group(name, attributes, formatted_targets, special_attributes, default_special_attributes, region, prev_state)
 
         ### DELETE CALL(S)
         delete_target_group()
 
         ### CREATE CALL(S) (occasionally multiple)
-        create_target_group(attributes, targets, special_attributes, default_special_attributes, region, prev_state)
+        create_target_group(attributes, formatted_targets, special_attributes, default_special_attributes, region, prev_state)
         
         ### UPDATE CALLS (common to have multiple)
         # You want ONE function per boto3 update call, so that retries come back to the EXACT same spot. 
