@@ -276,7 +276,7 @@ def lambda_handler(event, context):
                 (old_ip_address_type and old_ip_address_type != ip_address_type):
 
                 non_editable_error_message = "You may not edit the name, protocol, protocol_version, port, vpc_id, target_type, or ip_address_type on an existing target_group. Please create a new component and associate the listener to your updated target group to get the desired configuration."
-                eh.add_log(non_editable_error_message, {"error": non_editable_error_message}, is_error=True)
+                eh.add_log("Cannot edit non-editable field", {"error": non_editable_error_message}, is_error=True)
                 eh.perm_error(non_editable_error_message, 10)
 
         # If NOT retrying, and we are instead deleting, then we start with the DELETE call 
