@@ -113,8 +113,8 @@ def lambda_handler(event, context):
         preserve_client_ip_enabled = cdef.get("preserve_client_ip_enabled")
         proxy_protocol_v2_enabled = cdef.get("proxy_protocol_v2_enabled")
         # supported only by Gateway Load Balancers
-        target_failover_on_deregistration = cdef.get("target_failover_on_deregistration")
-        target_failover_on_unhealthy = cdef.get("target_failover_on_unhealthy")
+        target_failover_on_deregistration = cdef.get("target_failover_on_deregistration_on_unhealthy")
+        target_failover_on_unhealthy = cdef.get("target_failover_on_deregistration_on_unhealthy")
 
         # prev_state_def = prev_state.get("def", {})
 
@@ -167,25 +167,25 @@ def lambda_handler(event, context):
         })
 
         special_attributes = remove_none_attributes({
-            "deregistration_delay.timeout_seconds": deregistration_delay_timeout_seconds,
-            "stickiness.enabled": stickiness_enabled,
-            "stickiness.type": stickiness_type,
-            "load_balancing.cross_zone.enabled": load_balancing_cross_zone_enabled,
-            "target_group_health.dns_failover.minimum_healthy_targets.count": target_group_health_dns_failover_minimum_healthy_targets_count,
-            "target_group_health.dns_failover.minimum_healthy_targets.percentage": target_group_health_dns_failover_minimum_healthy_targets_percentage,
-            "target_group_health.unhealthy_state_routing.minimum_healthy_targets.count": target_group_health_unhealthy_state_routing_minimum_healthy_targets_count,
-            "target_group_health.unhealthy_state_routing.minimum_healthy_targets.percentage": target_group_health_unhealthy_state_routing_minimum_healthy_targets_percentage,
-            "load_balancing.algorithm.type": load_balancing_algorithm_type,
-            "slow_start.duration_seconds": slow_start_duration_seconds,
-            "stickiness.app_cookie.cookie_name": stickiness_app_cookie_cookie_name,
-            "stickiness.app_cookie.duration_seconds": stickiness_app_cookie_duration_seconds,
-            "stickiness.lb_cookie.duration_seconds": stickiness_lb_cookie_duration_seconds,
-            "lambda.multi_value_headers.enabled": lambda_multi_value_headers_enabled,
-            "deregistration_delay.connection_termination.enabled": deregistration_delay_connection_termination_enabled,
-            "preserve_client_ip.enabled": preserve_client_ip_enabled,
-            "proxy_protocol_v2.enabled": proxy_protocol_v2_enabled,
-            "target_failover.on_deregistration": target_failover_on_deregistration,
-            "target_failover.on_unhealthy": target_failover_on_unhealthy
+            "deregistration_delay.timeout_seconds": str(deregistration_delay_timeout_seconds) if deregistration_delay_timeout_seconds else deregistration_delay_timeout_seconds,
+            "stickiness.enabled": str(stickiness_enabled) if stickiness_enabled else stickiness_enabled,
+            "stickiness.type": str(stickiness_type) if stickiness_type else stickiness_type,
+            "load_balancing.cross_zone.enabled": str(load_balancing_cross_zone_enabled).lower() if load_balancing_cross_zone_enabled else load_balancing_cross_zone_enabled,
+            "target_group_health.dns_failover.minimum_healthy_targets.count": str(target_group_health_dns_failover_minimum_healthy_targets_count) if target_group_health_dns_failover_minimum_healthy_targets_count else target_group_health_dns_failover_minimum_healthy_targets_count,
+            "target_group_health.dns_failover.minimum_healthy_targets.percentage": str(target_group_health_dns_failover_minimum_healthy_targets_percentage) if target_group_health_dns_failover_minimum_healthy_targets_percentage else target_group_health_dns_failover_minimum_healthy_targets_percentage,
+            "target_group_health.unhealthy_state_routing.minimum_healthy_targets.count": str(target_group_health_unhealthy_state_routing_minimum_healthy_targets_count) if target_group_health_unhealthy_state_routing_minimum_healthy_targets_count else target_group_health_unhealthy_state_routing_minimum_healthy_targets_count,
+            "target_group_health.unhealthy_state_routing.minimum_healthy_targets.percentage": str(target_group_health_unhealthy_state_routing_minimum_healthy_targets_percentage) if target_group_health_unhealthy_state_routing_minimum_healthy_targets_percentage else target_group_health_unhealthy_state_routing_minimum_healthy_targets_percentage,
+            "load_balancing.algorithm.type": str(load_balancing_algorithm_type) if load_balancing_algorithm_type else load_balancing_algorithm_type,
+            "slow_start.duration_seconds": str(slow_start_duration_seconds) if slow_start_duration_seconds else slow_start_duration_seconds,
+            "stickiness.app_cookie.cookie_name": str(stickiness_app_cookie_cookie_name) if stickiness_app_cookie_cookie_name else stickiness_app_cookie_cookie_name,
+            "stickiness.app_cookie.duration_seconds": str(stickiness_app_cookie_duration_seconds) if stickiness_app_cookie_duration_seconds else stickiness_app_cookie_duration_seconds,
+            "stickiness.lb_cookie.duration_seconds": str(stickiness_lb_cookie_duration_seconds) if stickiness_lb_cookie_duration_seconds else stickiness_lb_cookie_duration_seconds,
+            "lambda.multi_value_headers.enabled": str(lambda_multi_value_headers_enabled).lower() if lambda_multi_value_headers_enabled else lambda_multi_value_headers_enabled,
+            "deregistration_delay.connection_termination.enabled": str(deregistration_delay_connection_termination_enabled).lower() if deregistration_delay_connection_termination_enabled else deregistration_delay_connection_termination_enabled,
+            "preserve_client_ip.enabled": str(preserve_client_ip_enabled).lower() if preserve_client_ip_enabled else preserve_client_ip_enabled,
+            "proxy_protocol_v2.enabled": str(proxy_protocol_v2_enabled).lower() if proxy_protocol_v2_enabled else proxy_protocol_v2_enabled,
+            "target_failover.on_deregistration": str(target_failover_on_deregistration) if target_failover_on_deregistration else target_failover_on_deregistration,
+            "target_failover.on_unhealthy": str(target_failover_on_unhealthy) if target_failover_on_unhealthy else target_failover_on_unhealthy
         })
 
 
@@ -217,7 +217,7 @@ def lambda_handler(event, context):
             'stickiness.enabled': 'false', 
             'target_group_health.unhealthy_state_routing.minimum_healthy_targets.percentage': 'off', 
             'deregistration_delay.timeout_seconds': '300', 
-            'target_group_health.dns_failover.minimum_healthy_targets.count': '1', 
+            'target_group_health.dns_failover.minimum_healthy_targets.count': 'off', 
             'stickiness.app_cookie.cookie_name': '', 
             'stickiness.type': 'lb_cookie', 
             'stickiness.lb_cookie.duration_seconds': '86400', 
