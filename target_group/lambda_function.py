@@ -578,7 +578,7 @@ def set_tags():
 @ext(handler=eh, op="update_target_group")
 def update_target_group(attributes):
     attributes_to_remove = ["Name", "Protocol", "ProtocolVersion", "Port", "VpcId", "TargetType", "Tags", "IpAddressType"]
-    filtered_attributes = [attr for attr in attributes if attr in attributes_to_remove]
+    filtered_attributes = {attr: attributes[attr] for attr in attributes if attr in attributes_to_remove}
     
     region = eh.state["region"]
 
