@@ -310,13 +310,13 @@ def lambda_handler(event, context):
         delete_target_group()
 
         ### CREATE CALL(S) (occasionally multiple)
-        create_target_group(attributes, special_attributes, default_special_attributes, region)
+        create_target_group(attributes, targets, special_attributes, default_special_attributes, region, prev_state)
         
         ### UPDATE CALLS (common to have multiple)
         # You want ONE function per boto3 update call, so that retries come back to the EXACT same spot. 
         remove_tags()
         set_tags()
-        register_targets(formatted_targets)
+        register_targets()
         update_target_group(attributes)
         update_target_group_special_attributes()
         reset_target_group_special_attributes(default_special_attributes)
@@ -384,7 +384,7 @@ def get_target_group(name, attributes, targets, special_attributes, default_spec
             targets_comparable = []
             if targets:
                 targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in targets]
-                
+
             prev_targets_comparable= []
             if prev_targets:
                 prev_targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in prev_targets]
@@ -480,7 +480,7 @@ def get_target_group(name, attributes, targets, special_attributes, default_spec
 
             
 @ext(handler=eh, op="create_target_group")
-def create_target_group(attributes, special_attributes, default_special_attributes, region):
+def create_target_group(attributes, targets, special_attributes, default_special_attributes, region, prev_state):
 
     try:
         response = client.create_target_group(**attributes)
@@ -504,6 +504,29 @@ def create_target_group(attributes, special_attributes, default_special_attribut
         eh.add_links({"Target Group": gen_target_group_link(region, target_group.get("TargetGroupArn"))})
 
         ### Once the target_group exists, then setup any followup tasks
+
+        # Figure out what targets needs to be removed and added and setup those actions
+        prev_targets = prev_state.get("props", {}).get("targets")
+
+        targets_comparable = []
+        if targets:
+            targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in targets]
+
+        prev_targets_comparable= []
+        if prev_targets:
+            prev_targets_comparable = [f"{item.get('Id')}${item.get('Port')}${item.get('AvailabilityZone')}" for item in prev_targets]
+
+        prev_targets_to_remove = [prev_target.split("$")[0] for prev_target in prev_targets_comparable if prev_target not in targets_comparable]
+        targets_to_add = [remove_none_attributes({ \
+            "Id": def_target.split("$")[0], \
+            "Port": def_target.split("$")[1], \
+            "AvailabilityZone": def_target.split("$")[2] or None \
+            }) for def_target in targets_comparable if def_target not in prev_targets_comparable]
+        
+        if targets_to_add:
+            eh.add_op("register_targets", targets_to_add)
+        if prev_targets_to_remove:
+            eh.add_op("deregister_targets", prev_targets_to_remove)
 
         # Figure out if there are special attributes that need to be set, otherwise reset all of the special attributes that exist current on the target group to their original values
         try:
