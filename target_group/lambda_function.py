@@ -659,11 +659,16 @@ def register_targets():
     target_group_arn = eh.state["target_group_arn"]
     print(targets)
     print(target_group_arn)
+    payload = {
+        "TargetGroupArn": target_group_arn,
+        "Targets":targets
+    }
+    print(payload)
     try:
-        response = client.register_targets(
-            TargetGroupArn=target_group_arn,
-            Targets=targets
-        )
+        response = client.register_targets(**payload)
+        #     TargetGroupArn=target_group_arn,
+        #     Targets=targets
+        # )
         eh.add_log("Targets Registered", response)
         eh.add_props({
             "targets": targets
