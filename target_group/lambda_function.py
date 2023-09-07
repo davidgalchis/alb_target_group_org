@@ -5,6 +5,8 @@ import json
 import traceback
 import zipfile
 import os
+import subprocess
+import logging
 
 from botocore.exceptions import ClientError
 
@@ -16,6 +18,9 @@ eh = ExtensionHandler()
 
 # Import your clients
 client = boto3.client('elbv2')
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 """
 eh calls
@@ -47,6 +52,13 @@ def safe_cast(val, to_type, default=None):
         return to_type(val)
     except (ValueError, TypeError):
         return default
+
+def run_command(command):
+    command_list = command.split(' ')
+    logger.info("Running shell command: \"{}\"".format(command))
+    result = subprocess.run(command_list, stdout=subprocess.PIPE)
+    logger.info("Command output:\n---\n{}\n---".format(result.stdout.decode('UTF-8')))
+    return result
 
 def lambda_handler(event, context):
     try:
@@ -663,17 +675,24 @@ def register_targets():
         "TargetGroupArn": target_group_arn,
         "Targets":[ {
             "Id": "10.0.5.199",
-            "Port": "443",
+            "Port": 443,
             "AvailabilityZone": "us-east-1a"
         }]
     }
     print(payload)
     try:
-        response = client.register_targets(**payload)
-        #     TargetGroupArn=target_group_arn,
-        #     Targets=targets
-        # )
-        eh.add_log("Targets Registered", response)
+
+        command = f"aws elbv2 register-targets --cli-input-json \"{json.dumps(payload)}\""
+        print(command)
+        result = run_command(command)
+        print(result)
+
+        # Register targets boto3 call returns InternalFailure on valid input. Going with CLI instead
+        # response = client.register_targets(**payload)
+        # #     TargetGroupArn=target_group_arn,
+        # #     Targets=targets
+        # # )
+        eh.add_log("Targets Registered", result)
         eh.add_props({
             "targets": targets
         })
@@ -706,7 +725,6 @@ def deregister_targets():
             Targets=formatted_targets
         )
         eh.add_log("Targets Deregistered", response)
-
     except client.exceptions.TargetGroupNotFoundException as e:
         eh.add_log("Target Group Not Found", {"error": str(e)}, is_error=True)
         eh.perm_error(str(e), 60)
