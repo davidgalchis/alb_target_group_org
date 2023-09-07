@@ -676,23 +676,23 @@ def register_targets():
         "Targets":[ {
             "Id": "10.0.5.199",
             "Port": 443,
-            "AvailabilityZone": "us-east-1a"
+            "AvailabilityZone": "all"
         }]
     }
     print(payload)
     try:
 
-        command = f"aws elbv2 register-targets --cli-input-json \"{json.dumps(payload)}\""
-        print(command)
-        result = run_command(command)
-        print(result)
+        # command = f"aws elbv2 register-targets --cli-input-json \"{json.dumps(payload)}\""
+        # print(command)
+        # result = run_command(command)
+        # print(result)
 
         # Register targets boto3 call returns InternalFailure on valid input. Going with CLI instead
-        # response = client.register_targets(**payload)
-        # #     TargetGroupArn=target_group_arn,
-        # #     Targets=targets
-        # # )
-        eh.add_log("Targets Registered", result)
+        response = client.register_targets(**payload)
+        #     TargetGroupArn=target_group_arn,
+        #     Targets=targets
+        # )
+        eh.add_log("Targets Registered", response)
         eh.add_props({
             "targets": targets
         })
