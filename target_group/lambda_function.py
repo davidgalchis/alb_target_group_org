@@ -677,7 +677,7 @@ def register_targets():
             "Id": "10.0.5.199",
             "Port": 443,
             "AvailabilityZone": "all"
-        }]
+        },]
     }
     print(payload)
     try:
