@@ -663,7 +663,7 @@ def register_targets():
         "TargetGroupArn": target_group_arn,
         "Targets":[ {
             "Id": "10.0.5.199",
-            "Port": 443,
+            "Port": "443",
             "AvailabilityZone": "us-east-1a"
         }]
     }
