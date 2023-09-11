@@ -159,7 +159,7 @@
                     },
                     "tags": {
                         "type": "object",
-                        "description": "The tags to attach to this queue",
+                        "description": "The tags to attach to this target group",
                         "common": true
                     },
                     "deregistration_delay_timeout_seconds": {
